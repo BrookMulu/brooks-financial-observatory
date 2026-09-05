@@ -30,3 +30,7 @@ The API key is server-only. Never prefix it with `NEXT_PUBLIC_` or commit `.env.
 Data comes from [Financial Modeling Prep](https://site.financialmodelingprep.com/developer/docs/stable/income-statement). Search, company coverage, quarterly data and history length depend on the configured subscription. The dashboard uses the provider’s default history length (currently five periods with the configured account). Provider errors are shown rather than replaced with fabricated demo data.
 
 Deploy to a Next.js-compatible Node host, set `FMP_API_KEY` in its server environment, then build and start with `npm run build` and `npm start`. This app requires server routes and cannot be deployed as a static export. Before a public high-traffic launch, add host-level request throttling to protect the provider quota. No authentication or persistent user accounts are included.
+
+## Existing deployment
+
+The original app was deployed at https://financial-data-filtering-app-swart.vercel.app/. For the updated dashboard, configure `FMP_API_KEY` in the hosting environment before redeploying. The deployment has not been verified as part of this update.
