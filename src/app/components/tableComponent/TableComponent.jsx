@@ -1,13 +1,13 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { fetchIncomeStatement } from '@/app/services/fmpService';
 import table from '@/app/model/table';
 
 export default function TableComponent() {
   const [data, setData] = useState([]);
-  const [filteredData, setFilteredData] = useState([]);
   const [error, setError] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   const [filters, setFilters] = useState({
     startDate: '', 
@@ -21,60 +21,51 @@ export default function TableComponent() {
   const [sortConfig, setSortConfig] = useState({ key: '', direction: '' });
 
   useEffect(() => {
+    let active = true;
     const getData = async () => {
       try {
         const result = await fetchIncomeStatement('AAPL', 'annual');
-        setData(result);
-        setFilteredData(result); 
+        if (active) setData(result);
       } catch (err) {
-        setError('Failed to load income statement data');
-        console.error('Error:', err);
+        if (active) setError(err.message || 'Failed to load income statement data');
+      } finally {
+        if (active) setLoading(false);
       }
     };
 
     getData();
+    return () => { active = false; };
   }, []);
 
-  useEffect(() => {
-    const applyFilters = () => {
-      let filtered = [...data];
+  const filteredData = useMemo(() => {
+    let filtered = [...data];
 
-      if (filters.startDate) {
-        filtered = filtered.filter(
-          (row) => new Date(row.date).getFullYear() >= Number(filters.startDate)
-        );
-      }
-      if (filters.endDate) {
-        filtered = filtered.filter(
-          (row) => new Date(row.date).getFullYear() <= Number(filters.endDate)
-        );
-      }
-
-      if (filters.minRevenue) {
-        filtered = filtered.filter((row) => row.revenue >= Number(filters.minRevenue));
-      }
-      if (filters.maxRevenue) {
-        filtered = filtered.filter((row) => row.revenue <= Number(filters.maxRevenue));
-      }
-
-      if (filters.minNetIncome) {
-        filtered = filtered.filter((row) => row.netIncome >= Number(filters.minNetIncome));
-      }
-      if (filters.maxNetIncome) {
-        filtered = filtered.filter((row) => row.netIncome <= Number(filters.maxNetIncome));
-      }
-
-      applySorting(filtered);
-    };
-
-    applyFilters();
-  }, [filters, data]);
-
-  const applySorting = (filtered) => {
-    if (!sortConfig.key) {
-      setFilteredData(filtered);
-      return;
+    if (filters.startDate) {
+      filtered = filtered.filter(
+        (row) => new Date(row.date).getFullYear() >= Number(filters.startDate)
+      );
     }
+    if (filters.endDate) {
+      filtered = filtered.filter(
+        (row) => new Date(row.date).getFullYear() <= Number(filters.endDate)
+      );
+    }
+
+    if (filters.minRevenue) {
+      filtered = filtered.filter((row) => row.revenue >= Number(filters.minRevenue));
+    }
+    if (filters.maxRevenue) {
+      filtered = filtered.filter((row) => row.revenue <= Number(filters.maxRevenue));
+    }
+
+    if (filters.minNetIncome) {
+      filtered = filtered.filter((row) => row.netIncome >= Number(filters.minNetIncome));
+    }
+    if (filters.maxNetIncome) {
+      filtered = filtered.filter((row) => row.netIncome <= Number(filters.maxNetIncome));
+    }
+
+    if (!sortConfig.key) return filtered;
 
     const sortedData = [...filtered].sort((a, b) => {
       if (sortConfig.key === 'date') {
@@ -88,17 +79,14 @@ export default function TableComponent() {
       }
     });
 
-    setFilteredData(sortedData);
-  };
+    return sortedData;
+  }, [filters, data, sortConfig]);
 
   const handleSort = (key) => {
-    let direction = 'asc';
-    if (sortConfig.key === key && sortConfig.direction === 'asc') {
-      direction = 'desc';
-    }
-
-    setSortConfig({ key, direction });
-    applySorting(filteredData);
+    setSortConfig((prev) => ({
+      key,
+      direction: prev.key === key && prev.direction === 'asc' ? 'desc' : 'asc',
+    }));
   };
 
   const handleFilterChange = (e) => {
@@ -184,6 +172,7 @@ export default function TableComponent() {
         </div>
       </div>
 
+      {error && <p role="alert" className="mb-4 text-red-600">{error}</p>}
       <div className="overflow-x-auto shadow-lg border border-gray-200 rounded-lg">
         <table className="min-w-full bg-white border-collapse">
           <thead>
@@ -192,12 +181,14 @@ export default function TableComponent() {
                 <th
                   key={index}
                   className="p-4 cursor-pointer hover:bg-gray-200"
-                  onClick={() => handleSort(key)}
+                  aria-sort={sortConfig.key === key ? (sortConfig.direction === 'asc' ? 'ascending' : 'descending') : 'none'}
                 >
+                  <button type="button" className="w-full text-left" onClick={() => handleSort(key)}>
                   {key.charAt(0).toUpperCase() + key.slice(1)}
                   {sortConfig.key === key && (
                     <span>{sortConfig.direction === 'asc' ? ' ↑' : ' ↓'}</span>
                   )}
+                  </button>
                 </th>
               ))}
             </tr>
@@ -225,7 +216,7 @@ export default function TableComponent() {
             ) : (
               <tr>
                 <td colSpan={Object.keys(table).length} className="p-4 text-center text-gray-500">
-                  No data available
+                  {loading ? 'Loading income statements…' : error ? 'Income statements could not be loaded.' : data.length ? 'No statements match your filters.' : 'No data available'}
                 </td>
               </tr>
             )}

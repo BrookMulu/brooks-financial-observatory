@@ -1,36 +1,32 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+# Brook’s Financial Observatory — Company financial explorer
 
-## Getting Started
+A responsive financial research dashboard built with Next.js 15 and React 19. Search companies, switch annual/quarterly reporting, explore revenue and profit-margin charts, filter/sort income statements, and export the visible rows as CSV.
 
-First, run the development server:
+## Run locally
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+1. Install dependencies with `npm ci`.
+2. Copy `.env.example` to `.env.local` and set your Financial Modeling Prep API key.
+3. Run `npm run dev` and open the printed local URL.
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+The API key is server-only. Never prefix it with `NEXT_PUBLIC_` or commit `.env.local`.
 
-You can start editing the page by modifying `app/page.js`. The page auto-updates as you edit the file.
+## Verification
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- `npm test`: financial calculations, missing values, filtering, sorting and CSV regression tests.
+- `npm run build`: production compilation.
 
-## Learn More
+## Architecture and decisions
 
-To learn more about Next.js, take a look at the following resources:
+- App Router endpoints `/api/search` and `/api/financials` validate input and proxy only approved FMP endpoints. Raw provider responses and credentials are not sent to the client.
+- Provider responses are cached by Next.js for one hour. Requests time out after 15 seconds; failures have actionable UI states and retry.
+- Client requests are debounced for search and cancelled on selection changes to avoid stale responses.
+- The dashboard uses reported currency. Margin is net income / revenue; growth compares adjacent reported periods and is unavailable when the prior value is zero or negative. Quarterly comparisons are sequential, not year-over-year.
+- Charts and summary cards use all returned periods. Table filters only affect table rows and CSV exports. Missing values render as dashes and sort last.
+- Company, period, and filters are preserved in the URL for sharing. CSV exports full amounts, not rounded chart values.
+- Charts are SVG without additional dependencies; period targets support pointer and keyboard focus. Detailed values remain available in the table.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Data coverage and deployment
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Data comes from [Financial Modeling Prep](https://site.financialmodelingprep.com/developer/docs/stable/income-statement). Search, company coverage, quarterly data and history length depend on the configured subscription. The dashboard uses the provider’s default history length (currently five periods with the configured account). Provider errors are shown rather than replaced with fabricated demo data.
 
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Deploy to a Next.js-compatible Node host, set `FMP_API_KEY` in its server environment, then build and start with `npm run build` and `npm start`. This app requires server routes and cannot be deployed as a static export. Before a public high-traffic launch, add host-level request throttling to protect the provider quota. No authentication or persistent user accounts are included.

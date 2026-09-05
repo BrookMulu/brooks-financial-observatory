@@ -1,12 +1,13 @@
 {
-  "name": "financial-data-filtering-app",
+  "name": "brooks-financial-observatory",
   "version": "0.1.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "test": "node --test tests/*.test.mjs"
   },
   "dependencies": {
     "axios": "^1.7.9",

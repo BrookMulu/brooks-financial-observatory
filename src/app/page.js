@@ -1,8 +1,2 @@
-import TableComponent from "./components/tableComponent/TableComponent";
-export default function Home() {
-  return(
-    <>
-      <TableComponent/>
-    </>
-  )
-}
+import Explorer from './components/Explorer';
+export default function Home() { return <Explorer />; }
